@@ -1,35 +1,26 @@
 package io.github.laziji;
 
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
+import io.github.laziji.constant.Problem;
 
 public class Rect {
-    private float score;
-    private String info;
+    private Problem problem;
     private ModelInstance bgInstance;
     private ModelInstance txtInstance;
     private boolean pass=false;
 
-    public Rect(float score, String info,ModelInstance bgInstance,ModelInstance txtInstance) {
-        this.score = score;
-        this.info = info;
+    public Rect(Problem problem, ModelInstance bgInstance, ModelInstance txtInstance) {
+        this.problem = problem;
         this.bgInstance=bgInstance;
         this.txtInstance=txtInstance;
     }
 
-    public float getScore() {
-        return score;
+    public Problem getProblem() {
+        return problem;
     }
 
-    public void setScore(float score) {
-        this.score = score;
-    }
-
-    public String getInfo() {
-        return info;
-    }
-
-    public void setInfo(String info) {
-        this.info = info;
+    public void setProblem(Problem problem) {
+        this.problem = problem;
     }
 
     public ModelInstance getBgInstance() {

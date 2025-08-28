@@ -1,32 +1,21 @@
 package io.github.laziji;
 
-import com.alibaba.fastjson.JSON;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.*;
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
-import com.badlogic.gdx.graphics.g2d.GlyphLayout;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g3d.*;
 import com.badlogic.gdx.graphics.g3d.attributes.BlendingAttribute;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
-import com.badlogic.gdx.graphics.glutils.FrameBuffer;
-import com.badlogic.gdx.math.Vector3;
-import com.badlogic.gdx.utils.ScreenUtils;
+import io.github.laziji.constant.Problem;
 import io.github.laziji.tool.FontTools;
-import org.apache.commons.io.IOUtils;
 
-import javax.imageio.ImageIO;
-import java.awt.*;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.Random;
 
 /**
  * {@link com.badlogic.gdx.ApplicationListener} implementation shared by all platforms.
@@ -40,7 +29,6 @@ public class Main extends ApplicationAdapter {
     private Runway runway;
     private Role role;
     private Deque<RectGroup> rectGroups = new ArrayDeque<>();
-    private Random random;
 
     private ModelBuilder modelBuilder = new ModelBuilder();
     private PerspectiveCamera camera;
@@ -72,8 +60,6 @@ public class Main extends ApplicationAdapter {
                 new Material(ColorAttribute.createDiffuse(Color.WHITE)),
                 VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
         trackInstance = new ModelInstance(trackModel);
-
-        random = new Random();
 
         Texture texture = new Texture(Gdx.files.internal("assets/rect-bg.png"), true); // 第二个参数开启mipmap
         Material material = new Material();
@@ -134,11 +120,10 @@ public class Main extends ApplicationAdapter {
             o.setY(o.getY() - o.getSpeed() * deltaTimeTime);
             if (o.getY() < role.getY() && !o.isPass()) {
                 o.setPass(true);
-                if (role.getX() >= 0) {
-                    o.getRight().setPass(true);
-                } else {
-                    o.getLeft().setPass(true);
-                }
+                Rect rect = role.getX() >= 0 ? o.getRight() : o.getLeft();
+                rect.setPass(true);
+                role.setScore(rect.getProblem().getScoreFunc().apply(role.getScore()));
+                System.out.println(role.getScore());
             }
         });
         while (!rectGroups.isEmpty() && rectGroups.peek().getY() < 0) {
@@ -197,7 +182,7 @@ public class Main extends ApplicationAdapter {
 
 
     private ModelInstance createTextureInstance(String text) {
-        Texture textTexture = FontTools.createTexture(FontTools.DEFAULT_FONT, text,100,100);
+        Texture textTexture = FontTools.createTexture(FontTools.DEFAULT_FONT, text, 100, 100);
         Material material = new Material();
         material.set(TextureAttribute.createDiffuse(textTexture));
         material.set(new BlendingAttribute(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA));
@@ -217,8 +202,8 @@ public class Main extends ApplicationAdapter {
 
 
     private Rect newRect() {
-        String info = "x*3";
-        ModelInstance textureInstance = createTextureInstance(info);
-        return new Rect((float) random.nextInt(100), info, new ModelInstance(rectModel), textureInstance);
+        Problem problem = Problem.random();
+        ModelInstance textureInstance = createTextureInstance(problem.getInfo());
+        return new Rect(problem, new ModelInstance(rectModel), textureInstance);
     }
 }
