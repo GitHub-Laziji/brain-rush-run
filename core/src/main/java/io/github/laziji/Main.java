@@ -17,6 +17,7 @@ import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.graphics.glutils.FrameBuffer;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.ScreenUtils;
+import io.github.laziji.tool.FontTools;
 import org.apache.commons.io.IOUtils;
 
 import javax.imageio.ImageIO;
@@ -52,73 +53,24 @@ public class Main extends ApplicationAdapter {
     private BitmapFont font;
     private Environment environment;
 
-    private Map<Character,BufferedImage> fontImg = new HashMap<>();
-
-
     @Override
     public void create() {
-        BufferedImage fontAtlasImage = null;
-        try {
-            fontAtlasImage = ImageIO.read(new File("assets/font.png")); // 替换为实际路径
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        try(FileInputStream fis = new FileInputStream("assets/font.fnt")){
-            for(String row:IOUtils.toString(fis).split("\n")){
-                System.out.println(row);
-                if(!row.startsWith("char id=")){
-                    continue;
-                }
-                try{
 
-
-                char ch=0;
-                int charX=0;   // 字符在图集的x坐标
-                int charY=0;    // 字符在图集的y坐标
-                int charWidth=0;  // 字符宽度
-                int charHeight=0; // 字符高度
-                for(String col:row.split("\\s+")){
-                    if(col.startsWith("id=")){
-                        ch=(char)Integer.parseInt(col.substring("id=".length()));
-                    }else if(col.startsWith("x=")){
-                        charX=Integer.parseInt(col.substring("x=".length()));
-                    }else if(col.startsWith("y=")){
-                        charY=Integer.parseInt(col.substring("y=".length()));
-                    }else if(col.startsWith("width=")){
-                        charWidth=Integer.parseInt(col.substring("width=".length()));
-                    }else if(col.startsWith("height=")){
-                        charHeight=Integer.parseInt(col.substring("height=".length()));
-                    }
-                }
-                System.out.println(ch+" "+charX+" "+charY +" " + charWidth+" "+charHeight);
-                BufferedImage charAImage = fontAtlasImage.getSubimage(charX, charY, charWidth, charHeight);
-                fontImg.put(ch,charAImage);
-                }catch (Exception e){
-
-                }
-            }
-        }catch (Exception e){
-            e.printStackTrace();
-        }
-
-//        System.out.println(JSON.toJSONString(fontImg));
-
-
-        camera = new PerspectiveCamera(100, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-        camera.position.set(0, 0, 10); // 从正上方俯视
+        camera = new PerspectiveCamera(67, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        camera.position.set(0, -5, 10); // 从正上方俯视
         camera.direction.set(0, 2, -1); // 看向下方
         camera.up.set(0, 0, 1); // 调整上方方向
         camera.update();
 
         runway = new Runway(RUNWAY_WIDTH, RUNWAY_HEIGHT);
         trackModel = modelBuilder.createRect(
-            runway.getMaxX() / 2, 0, 0,
-            runway.getMaxX() / 2, runway.getMaxY(), 0,
-            -runway.getMaxX() / 2, runway.getMaxY(), 0,
-            -runway.getMaxX() / 2, 0, 0,
-            0, 0, -1,
-            new Material(ColorAttribute.createDiffuse(Color.WHITE)),
-            VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
+                runway.getMaxX() / 2, 0, 0,
+                runway.getMaxX() / 2, runway.getMaxY(), 0,
+                -runway.getMaxX() / 2, runway.getMaxY(), 0,
+                -runway.getMaxX() / 2, 0, 0,
+                0, 0, -1,
+                new Material(ColorAttribute.createDiffuse(Color.WHITE)),
+                VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
         trackInstance = new ModelInstance(trackModel);
 
         random = new Random();
@@ -128,22 +80,22 @@ public class Main extends ApplicationAdapter {
         material.set(TextureAttribute.createDiffuse(texture));
         material.set(new BlendingAttribute(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA));
         rectModel = modelBuilder.createRect(
-            0, 0, 0,
-            runway.getMaxX() / 2, 0, 0,
-            runway.getMaxX() / 2, 0, 5,
-            0, 0, 5,
-            0, 1, 0,
-            material,
-            VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.TextureCoordinates);
+                0, 0, 0,
+                runway.getMaxX() / 2, 0, 0,
+                runway.getMaxX() / 2, 0, 5,
+                0, 0, 5,
+                0, 1, 0,
+                material,
+                VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.TextureCoordinates);
         for (int i = 0; i < RECT_GROUP_NUM; i++) {
             rectGroups.add(new RectGroup(newRect(), newRect(), (i + 1) * runway.getMaxY() / RECT_GROUP_NUM, RECT_GROUP_SPEED));
         }
 
         role = new Role(0, 5, 2, 4, 0, 10);
         roleModel = modelBuilder.createBox(
-            2f, 2f, 4f, // 宽度、高度、深度
-            new Material(ColorAttribute.createDiffuse(Color.RED)), // 材质（红色）
-            VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal // 顶点属性
+                2f, 2f, 4f, // 宽度、高度、深度
+                new Material(ColorAttribute.createDiffuse(Color.RED)), // 材质（红色）
+                VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal // 顶点属性
         );
 
         roleInstance = new ModelInstance(roleModel);
@@ -243,86 +195,21 @@ public class Main extends ApplicationAdapter {
         trackModel.dispose();
     }
 
-    /**
-     * 将Java AWT Image转换为LibGDX Texture
-     * @param awtImage Java AWT的Image对象
-     * @return LibGDX的Texture对象
-     */
-    public static Texture convert(Image awtImage) {
-        // 1. 将Image转换为BufferedImage（确保可获取像素数据）
-        BufferedImage bufferedImage = toBufferedImage(awtImage);
-
-        // 2. 创建与BufferedImage同尺寸的Pixmap
-        int width = bufferedImage.getWidth();
-        int height = bufferedImage.getHeight();
-        Pixmap pixmap = new Pixmap(width, height, Pixmap.Format.RGBA8888);
-
-        // 3. 逐个像素复制数据（从BufferedImage到Pixmap）
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                // 获取ARGB格式的像素值
-                int argb = bufferedImage.getRGB(x, y);
-
-                // 转换ARGB到RGBA（LibGDX的Pixmap使用RGBA格式）
-                int r = (argb >> 16) & 0xFF;
-                int g = (argb >> 8) & 0xFF;
-                int b = argb & 0xFF;
-                int a = (argb >> 24) & 0xFF;
-
-                // 计算RGBA颜色值（LibGDX的颜色格式）
-                int rgba = (a << 24) | (r << 16) | (g << 8) | b;
-
-                // 设置Pixmap的像素
-                pixmap.drawPixel(x, y, rgba);
-            }
-        }
-
-        // 4. 从Pixmap创建Texture
-        Texture texture = new Texture(pixmap);
-
-        // 5. 释放Pixmap资源
-        pixmap.dispose();
-
-        return texture;
-    }
-
-    /**
-     * 将Image转换为BufferedImage
-     */
-    private static BufferedImage toBufferedImage(Image image) {
-        if (image instanceof BufferedImage) {
-            return (BufferedImage) image;
-        }
-
-        // 创建一个兼容的BufferedImage
-        BufferedImage bufferedImage = new BufferedImage(
-            image.getWidth(null),
-            image.getHeight(null),
-            BufferedImage.TYPE_INT_ARGB // 使用带Alpha通道的格式
-        );
-
-        // 绘制图像到BufferedImage
-        Graphics2D g2d = bufferedImage.createGraphics();
-        g2d.drawImage(image, 0, 0, null);
-        g2d.dispose();
-
-        return bufferedImage;
-    }
 
     private ModelInstance createTextureInstance(String text) {
-        Texture textTexture = convert(fontImg.get(text.charAt(0)));
+        Texture textTexture = FontTools.createTexture(FontTools.DEFAULT_FONT, text,100,100);
         Material material = new Material();
         material.set(TextureAttribute.createDiffuse(textTexture));
         material.set(new BlendingAttribute(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA));
 
-        Model model  = modelBuilder.createRect(
-            0, 0, 0,
-            runway.getMaxX() / 2, 0, 0,
-            runway.getMaxX() / 2, 0, 5,
-            0, 0, 5,
-            0, 1, 0,
-            material,
-            VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.TextureCoordinates
+        Model model = modelBuilder.createRect(
+                0, 0, 0,
+                runway.getMaxX() / 2, 0, 0,
+                runway.getMaxX() / 2, 0, 5,
+                0, 0, 5,
+                0, 1, 0,
+                material,
+                VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.TextureCoordinates
         );
 
         return new ModelInstance(model);
@@ -332,7 +219,6 @@ public class Main extends ApplicationAdapter {
     private Rect newRect() {
         String info = "x*3";
         ModelInstance textureInstance = createTextureInstance(info);
-//        ModelInstance textureInstance=null;
         return new Rect((float) random.nextInt(100), info, new ModelInstance(rectModel), textureInstance);
     }
 }
