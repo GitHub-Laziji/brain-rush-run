@@ -28,10 +28,12 @@ import java.util.Random;
  */
 public class Main extends ApplicationAdapter {
 
-    private final float RECT_GROUP_NUM = 15;
-    private final float RECT_GROUP_SPEED = 15;
     private final float RUNWAY_HEIGHT = 300;
     private final float RUNWAY_WIDTH = 20;
+    private final float RECT_GROUP_NUM = 15;
+    private final float RECT_GROUP_SPEED = 20;
+    private final float RECT_GROUP_HEIGHT = 5;
+    private final float RECT_GROUP_COL_WIDTH = 0.5f;
     private Runway runway;
     private Role role;
     private Deque<RectGroup> rectGroups = new ArrayDeque<>();
@@ -39,9 +41,12 @@ public class Main extends ApplicationAdapter {
     private ModelBuilder modelBuilder = new ModelBuilder();
     private PerspectiveCamera camera;
     private Model trackModel;
-    private ModelInstance trackInstance;
+    private Model trackBgModel;
     private Model rectModel;
     private Model roleModel;
+    private Model rectGroupColModel;
+    private ModelInstance trackInstance;
+    private ModelInstance trackBgInstance;
     private ModelInstance roleInstance;
     private ModelBatch modelBatch;
     private BitmapFont font;
@@ -68,6 +73,15 @@ public class Main extends ApplicationAdapter {
                 new Material(ColorAttribute.createDiffuse(Color.WHITE)),
                 VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
         trackInstance = new ModelInstance(trackModel);
+        trackBgModel = modelBuilder.createRect(
+                runway.getMaxX() / 2+RECT_GROUP_COL_WIDTH/2, 0, 0,
+                runway.getMaxX() / 2+RECT_GROUP_COL_WIDTH/2, runway.getMaxY(), 0,
+                -runway.getMaxX() / 2-RECT_GROUP_COL_WIDTH/2, runway.getMaxY(), 0,
+                -runway.getMaxX() / 2-RECT_GROUP_COL_WIDTH/2, 0, 0,
+                0, 0, -1,
+                new Material(ColorAttribute.createDiffuse(new Color(0xfafafaff))),
+                VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
+        trackBgInstance = new ModelInstance(trackBgModel);
 
         Texture texture = new Texture(Gdx.files.internal("assets/rect-bg.png"), true); // 第二个参数开启mipmap
         Material material = new Material();
@@ -76,24 +90,21 @@ public class Main extends ApplicationAdapter {
         rectModel = modelBuilder.createRect(
                 0, 0, 0,
                 runway.getMaxX() / 2, 0, 0,
-                runway.getMaxX() / 2, 0, 5,
-                0, 0, 5,
+                runway.getMaxX() / 2, 0, RECT_GROUP_HEIGHT,
+                0, 0, RECT_GROUP_HEIGHT,
                 0, 1, 0,
                 material,
                 VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.TextureCoordinates);
+        rectGroupColModel = modelBuilder.createBox(
+                0.5f, 0.5f, RECT_GROUP_HEIGHT,
+                new Material(ColorAttribute.createDiffuse(Color.BLACK)),
+                VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal
+        );
         for (int i = 0; i < RECT_GROUP_NUM; i++) {
-            rectGroups.add(new RectGroup(newRect(), newRect(), (i + 1) * runway.getMaxY() / RECT_GROUP_NUM, RECT_GROUP_SPEED));
+            rectGroups.add(newRectGroup());
         }
 
         role = new Role(0, 5, 2, 4, 0, 10);
-//        roleModel = modelBuilder.createBox(
-//                2f, 2f, 4f, // 宽度、高度、深度
-//                new Material(ColorAttribute.createDiffuse(Color.RED)), // 材质（红色）
-//                VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal // 顶点属性
-//        );
-//        roleInstance = new ModelInstance(roleModel);
-//        roleInstance.transform.setToTranslation(0, 5, 2f);
-
         UBJsonReader jsonReader = new UBJsonReader();
         G3dModelLoader modelLoader = new G3dModelLoader(jsonReader);
         roleModel = modelLoader.loadModel(Gdx.files.internal("assets/role.g3db"));  // 替换为你的模型文件名
@@ -101,7 +112,7 @@ public class Main extends ApplicationAdapter {
         roleInstance.transform.scl(0.02f);
         roleInstance.transform.rotate(Vector3.X, MathUtils.degreesToRadians * 90 * 60);
         roleInstance.transform.rotate(Vector3.Y, MathUtils.degreesToRadians * 170 * 60);
-        roleInstance.transform.translate(-role.getX() /roleInstance.transform.getScaleX(), 0, role.getY() /roleInstance.transform.getScaleY());
+        roleInstance.transform.translate(-role.getX() / roleInstance.transform.getScaleX(), 0, role.getY() / roleInstance.transform.getScaleY());
 
         // 初始化动画控制器
         animationController = new AnimationController(roleInstance);
@@ -128,9 +139,10 @@ public class Main extends ApplicationAdapter {
     @Override
     public void render() {
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
-        Gdx.gl.glClearColor(0.2f, 0.4f, 0.8f, 1); // 浅蓝色背景
+        Gdx.gl.glClearColor((float) 0xE3 / 0xFF, (float) 0x8E / 0xFF, (float) 0x14 / 0xFF, 1); // 浅蓝色背景
         handleInput();
         modelBatch.begin(camera);
+        modelBatch.render(trackBgInstance, environment);
         modelBatch.render(trackInstance, environment);
         drawRect();
         drawRole();
@@ -140,7 +152,7 @@ public class Main extends ApplicationAdapter {
     private void drawRole() {
         float deltaTime = Gdx.graphics.getDeltaTime();
         animationController.update(deltaTime);
-        roleInstance.transform.translate(-role.getDx() /roleInstance.transform.getScaleX(), 0, role.getDy() /roleInstance.transform.getScaleY());
+        roleInstance.transform.translate(-role.getDx() / roleInstance.transform.getScaleX(), 0, role.getDy() / roleInstance.transform.getScaleY());
         modelBatch.render(roleInstance, environment);
     }
 
@@ -158,7 +170,7 @@ public class Main extends ApplicationAdapter {
         });
         while (!rectGroups.isEmpty() && rectGroups.peek().getY() < 0) {
             rectGroups.pop();
-            rectGroups.addLast(new RectGroup(newRect(), newRect(), rectGroups.getLast().getY() + runway.getMaxY() / RECT_GROUP_NUM, RECT_GROUP_SPEED));
+            rectGroups.addLast(newRectGroup());
         }
         rectGroups.forEach(o -> {
             if (!o.getLeft().isPass()) {
@@ -173,6 +185,12 @@ public class Main extends ApplicationAdapter {
                 o.getRight().getTxtInstance().transform.setToTranslation(0, o.getY(), 0);
                 modelBatch.render(o.getRight().getTxtInstance(), environment);
             }
+            o.getLeftColInstance().transform.setToTranslation(-runway.getMaxX() / 2, o.getY(), RECT_GROUP_HEIGHT / 2);
+            modelBatch.render(o.getLeftColInstance(), environment);
+            o.getMiddleColInstance().transform.setToTranslation(0, o.getY(), RECT_GROUP_HEIGHT / 2);
+            modelBatch.render(o.getMiddleColInstance(), environment);
+            o.getRightColInstance().transform.setToTranslation(runway.getMaxX() / 2, o.getY(), RECT_GROUP_HEIGHT / 2);
+            modelBatch.render(o.getRightColInstance(), environment);
         });
     }
 
@@ -204,7 +222,6 @@ public class Main extends ApplicationAdapter {
         if (role.getY() + role.getDy() < 5) {
             role.setDy(5 - role.getY());
         }
-//        System.out.println(role.getDx() + " " + role.getDy() + " " + role.getX() + " " + role.getY());
         role.setX(role.getX() + role.getDx());
         role.setY(role.getY() + role.getDy());
     }
@@ -217,7 +234,7 @@ public class Main extends ApplicationAdapter {
 
 
     private ModelInstance createTextureInstance(String text) {
-        Texture textTexture = FontTools.createTexture(FontTools.DEFAULT_FONT, text, 150, 100);
+        Texture textTexture = FontTools.createTexture(FontTools.DEFAULT_FONT, text, 180, 120);
         Material material = new Material();
         material.set(TextureAttribute.createDiffuse(textTexture));
         material.set(new BlendingAttribute(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA));
@@ -235,6 +252,10 @@ public class Main extends ApplicationAdapter {
         return new ModelInstance(model);
     }
 
+
+    private RectGroup newRectGroup() {
+        return new RectGroup(newRect(), newRect(), (rectGroups.isEmpty() ? 0 : rectGroups.getLast().getY()) + runway.getMaxY() / RECT_GROUP_NUM, RECT_GROUP_SPEED, new ModelInstance(rectGroupColModel), new ModelInstance(rectGroupColModel), new ModelInstance(rectGroupColModel));
+    }
 
     private Rect newRect() {
         Problem problem = Problem.random();

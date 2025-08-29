@@ -93,7 +93,7 @@ public class FontTools {
             for (int y = 0; y < srcHeight; y++) {
                 for (int x = 0; x < srcWidth; x++) {
                     int targetX = subX + x;
-                    int targetY = subY + y;
+                    int targetY = (fontHeight-srcHeight)/2+ subY + y;
                     if (targetX >= 0 && targetX < target.getWidth() && targetY < target.getHeight()) {
                         int targetIndex = targetY * target.getWidth() + targetX;
                         int srcIndex = y * srcWidth + x;

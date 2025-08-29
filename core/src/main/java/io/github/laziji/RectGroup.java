@@ -1,5 +1,7 @@
 package io.github.laziji;
 
+import com.badlogic.gdx.graphics.g3d.ModelInstance;
+
 public class RectGroup {
 
     private Rect left;
@@ -8,12 +10,18 @@ public class RectGroup {
     private float dy=0;
     private float speed;
     private boolean pass=false;
+    private ModelInstance leftColInstance;
+    private ModelInstance middleColInstance;
+    private ModelInstance rightColInstance;
 
-    public RectGroup(Rect left, Rect right, float y,float speed) {
+    public RectGroup(Rect left, Rect right, float y, float speed, ModelInstance leftColInstance, ModelInstance middleColInstance, ModelInstance rightColInstance) {
         this.left = left;
         this.right = right;
         this.y = y;
-        this.speed=speed;
+        this.speed = speed;
+        this.leftColInstance = leftColInstance;
+        this.middleColInstance = middleColInstance;
+        this.rightColInstance = rightColInstance;
     }
 
     public Rect getLeft() {
@@ -62,5 +70,29 @@ public class RectGroup {
 
     public void setDy(float dy) {
         this.dy = dy;
+    }
+
+    public ModelInstance getLeftColInstance() {
+        return leftColInstance;
+    }
+
+    public void setLeftColInstance(ModelInstance leftColInstance) {
+        this.leftColInstance = leftColInstance;
+    }
+
+    public ModelInstance getMiddleColInstance() {
+        return middleColInstance;
+    }
+
+    public void setMiddleColInstance(ModelInstance middleColInstance) {
+        this.middleColInstance = middleColInstance;
+    }
+
+    public ModelInstance getRightColInstance() {
+        return rightColInstance;
+    }
+
+    public void setRightColInstance(ModelInstance rightColInstance) {
+        this.rightColInstance = rightColInstance;
     }
 }
