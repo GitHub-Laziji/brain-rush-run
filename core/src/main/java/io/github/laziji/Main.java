@@ -217,7 +217,7 @@ public class Main extends ApplicationAdapter {
 
 
     private ModelInstance createTextureInstance(String text) {
-        Texture textTexture = FontTools.createTexture(FontTools.DEFAULT_FONT, text, 200, 200);
+        Texture textTexture = FontTools.createTexture(FontTools.DEFAULT_FONT, text, 150, 100);
         Material material = new Material();
         material.set(TextureAttribute.createDiffuse(textTexture));
         material.set(new BlendingAttribute(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA));

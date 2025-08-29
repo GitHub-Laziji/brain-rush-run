@@ -16,10 +16,14 @@ import java.util.concurrent.FutureTask;
 
 public class FontTools {
 
+    public static final Map<Character, BufferedImage> FONT_B;
+    public static final Map<Character, BufferedImage> FONT_W;
     public static final Map<Character, BufferedImage> DEFAULT_FONT;
 
     static {
-        DEFAULT_FONT = FontTools.load("assets/font.fnt", "assets/font.png");
+        FONT_B = FontTools.load("assets/font.fnt", "assets/font-b.png"); //TODO
+        FONT_W = FontTools.load("assets/font.fnt", "assets/font-w.png");
+        DEFAULT_FONT = FONT_W;
     }
 
     private static Map<Character, BufferedImage> load(String fntPath, String pngPath) {
