@@ -5,6 +5,7 @@ public class RectGroup {
     private Rect left;
     private Rect right;
     private float y;
+    private float dy=0;
     private float speed;
     private boolean pass=false;
 
@@ -53,5 +54,13 @@ public class RectGroup {
 
     public void setPass(boolean pass) {
         this.pass = pass;
+    }
+
+    public float getDy() {
+        return dy;
+    }
+
+    public void setDy(float dy) {
+        this.dy = dy;
     }
 }

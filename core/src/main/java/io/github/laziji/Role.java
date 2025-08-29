@@ -4,6 +4,8 @@ public class Role {
 
     private float x;
     private float y;
+    private float dx=0;
+    private float dy=0;
     private float width;
     private float height;
     private float score;
@@ -64,5 +66,21 @@ public class Role {
 
     public void setSpeed(float speed) {
         this.speed = speed;
+    }
+
+    public float getDx() {
+        return dx;
+    }
+
+    public void setDx(float dx) {
+        this.dx = dx;
+    }
+
+    public float getDy() {
+        return dy;
+    }
+
+    public void setDy(float dy) {
+        this.dy = dy;
     }
 }

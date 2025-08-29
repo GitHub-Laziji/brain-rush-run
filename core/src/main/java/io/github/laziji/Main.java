@@ -1,5 +1,6 @@
 package io.github.laziji;
 
+import com.alibaba.fastjson.JSON;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
@@ -9,7 +10,12 @@ import com.badlogic.gdx.graphics.g3d.*;
 import com.badlogic.gdx.graphics.g3d.attributes.BlendingAttribute;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute;
+import com.badlogic.gdx.graphics.g3d.loader.G3dModelLoader;
+import com.badlogic.gdx.graphics.g3d.utils.AnimationController;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
+import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.utils.UBJsonReader;
 import io.github.laziji.constant.Problem;
 import io.github.laziji.tool.FontTools;
 
@@ -40,6 +46,8 @@ public class Main extends ApplicationAdapter {
     private ModelBatch modelBatch;
     private BitmapFont font;
     private Environment environment;
+
+    private AnimationController animationController;
 
     @Override
     public void create() {
@@ -78,14 +86,34 @@ public class Main extends ApplicationAdapter {
         }
 
         role = new Role(0, 5, 2, 4, 0, 10);
-        roleModel = modelBuilder.createBox(
-                2f, 2f, 4f, // 宽度、高度、深度
-                new Material(ColorAttribute.createDiffuse(Color.RED)), // 材质（红色）
-                VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal // 顶点属性
-        );
+//        roleModel = modelBuilder.createBox(
+//                2f, 2f, 4f, // 宽度、高度、深度
+//                new Material(ColorAttribute.createDiffuse(Color.RED)), // 材质（红色）
+//                VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal // 顶点属性
+//        );
+//        roleInstance = new ModelInstance(roleModel);
+//        roleInstance.transform.setToTranslation(0, 5, 2f);
 
+        UBJsonReader jsonReader = new UBJsonReader();
+        G3dModelLoader modelLoader = new G3dModelLoader(jsonReader);
+        roleModel = modelLoader.loadModel(Gdx.files.internal("assets/role.g3db"));  // 替换为你的模型文件名
         roleInstance = new ModelInstance(roleModel);
-        roleInstance.transform.setToTranslation(0, 5, 2f);
+        roleInstance.transform.scl(0.02f);
+        roleInstance.transform.rotate(Vector3.X, MathUtils.degreesToRadians * 90 * 60);
+        roleInstance.transform.rotate(Vector3.Y, MathUtils.degreesToRadians * 170 * 60);
+        roleInstance.transform.translate(-role.getX() /roleInstance.transform.getScaleX(), 0, role.getY() /roleInstance.transform.getScaleY());
+
+        // 初始化动画控制器
+        animationController = new AnimationController(roleInstance);
+        // 检查模型是否包含动画
+        if (roleModel.animations.size > 0) {
+            String animName = roleModel.animations.get(1).id;
+            // 播放动画：参数依次为动画名称、是否循环、速度、回调、延迟
+            animationController.animate(animName, -1, 1f, null, 0f);
+            Gdx.app.log("Animation", "播放动画: " + animName);
+        } else {
+            Gdx.app.log("Animation", "模型不包含动画数据！");
+        }
 
         modelBatch = new ModelBatch();
         font = new BitmapFont();
@@ -110,20 +138,22 @@ public class Main extends ApplicationAdapter {
     }
 
     private void drawRole() {
-        roleInstance.transform.setToTranslation(role.getX(), role.getY(), 2f);
+        float deltaTime = Gdx.graphics.getDeltaTime();
+        animationController.update(deltaTime);
+        roleInstance.transform.translate(-role.getDx() /roleInstance.transform.getScaleX(), 0, role.getDy() /roleInstance.transform.getScaleY());
         modelBatch.render(roleInstance, environment);
     }
 
     private void drawRect() {
         float deltaTimeTime = Gdx.graphics.getDeltaTime();
         rectGroups.forEach(o -> {
-            o.setY(o.getY() - o.getSpeed() * deltaTimeTime);
+            o.setDy(-o.getSpeed() * deltaTimeTime);
+            o.setY(o.getY() + o.getDy());
             if (o.getY() < role.getY() && !o.isPass()) {
                 o.setPass(true);
                 Rect rect = role.getX() >= 0 ? o.getRight() : o.getLeft();
                 rect.setPass(true);
                 role.setScore(rect.getProblem().getScoreFunc().apply(role.getScore()));
-                System.out.println(role.getScore());
             }
         });
         while (!rectGroups.isEmpty() && rectGroups.peek().getY() < 0) {
@@ -147,31 +177,36 @@ public class Main extends ApplicationAdapter {
     }
 
     private synchronized void handleInput() {
+        role.setDx(0);
+        role.setDy(0);
         float deltaTime = Gdx.graphics.getDeltaTime();
         if (Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
-            role.setX(role.getX() - role.getSpeed() * deltaTime);
+            role.setDx(-role.getSpeed() * deltaTime);
         }
         if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
-            role.setX(role.getX() + role.getSpeed() * deltaTime);
+            role.setDx(role.getSpeed() * deltaTime);
         }
         if (Gdx.input.isKeyPressed(Input.Keys.UP)) {
-            role.setY(role.getY() + role.getSpeed() * deltaTime);
+            role.setDy(role.getSpeed() * deltaTime);
         }
         if (Gdx.input.isKeyPressed(Input.Keys.DOWN)) {
-            role.setY(role.getY() - role.getSpeed() * deltaTime);
+            role.setDy(-role.getSpeed() * deltaTime);
         }
-        if (role.getX() > runway.getMaxX() / 2 - role.getWidth() / 2) {
-            role.setX(runway.getMaxX() / 2 - role.getWidth() / 2);
+        if (role.getX() + role.getDx() > runway.getMaxX() / 2 - role.getWidth() / 2) {
+            role.setDx(runway.getMaxX() / 2 - role.getWidth() / 2 - role.getX());
         }
-        if (role.getX() < -runway.getMaxX() / 2 + role.getWidth() / 2) {
-            role.setX(-runway.getMaxX() / 2 + role.getWidth() / 2);
+        if (role.getX() + role.getDx() < -runway.getMaxX() / 2 + role.getWidth() / 2) {
+            role.setDx(-runway.getMaxX() / 2 + role.getWidth() / 2 - role.getX());
         }
-        if (role.getY() > 20) {
-            role.setY(20);
+        if (role.getY() + role.getDy() > 20) {
+            role.setDy(20 - role.getY());
         }
-        if (role.getY() < 5) {
-            role.setY(5);
+        if (role.getY() + role.getDy() < 5) {
+            role.setDy(5 - role.getY());
         }
+//        System.out.println(role.getDx() + " " + role.getDy() + " " + role.getX() + " " + role.getY());
+        role.setX(role.getX() + role.getDx());
+        role.setY(role.getY() + role.getDy());
     }
 
     @Override
@@ -182,7 +217,7 @@ public class Main extends ApplicationAdapter {
 
 
     private ModelInstance createTextureInstance(String text) {
-        Texture textTexture = FontTools.createTexture(FontTools.DEFAULT_FONT, text, 100, 100);
+        Texture textTexture = FontTools.createTexture(FontTools.DEFAULT_FONT, text, 200, 200);
         Material material = new Material();
         material.set(TextureAttribute.createDiffuse(textTexture));
         material.set(new BlendingAttribute(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA));

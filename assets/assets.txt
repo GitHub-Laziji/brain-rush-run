@@ -2,3 +2,4 @@ font.fnt
 font.png
 libgdx.png
 rect-bg.png
+role.g3db
